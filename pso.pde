@@ -1,9 +1,9 @@
 import java.util.Random;
 
-int n = 3; // number of agents
-int g = 4; // number of goals
-float c1 = 0.01f;
-float c2 = 0.001f;
+int n = 5; // number of agents
+int g = 3; // number of goals
+float c1 = 0.001f;
+float c2 = 0.01f;
 int it = 1;
 
 ArrayList<PVector> points = new ArrayList<PVector>();
@@ -16,6 +16,14 @@ float bestFit = 0f;
 
 ArrayList<PVector> history = new ArrayList<PVector>();
 
+boolean conv = false;
+float lastB = -1f;
+
+float[] map;
+float high = Float.MIN_VALUE;
+float low = Float.MAX_VALUE;
+PVector realBest;
+
 Random rand = new Random();
 
 void setup() {
@@ -24,7 +32,7 @@ void setup() {
   
   for (int i = 0; i < n; i++) {
     points.add(new PVector(rand.nextFloat() * width, rand.nextFloat() * height));
-    velocities.add(new PVector(rand.nextFloat() * 2 - 1, rand.nextFloat() * 2 - 1));
+    velocities.add(new PVector(rand.nextFloat() - 0.5f, rand.nextFloat() - 0.5f));
     bests.add(new PVector());
   }
   
@@ -32,10 +40,33 @@ void setup() {
     goals.add(new PVector(rand.nextFloat() * width, rand.nextFloat() * height));
   }
   
+  map = new float[width * height];
+  
+  for (int i = 0; i < width; i++) {
+    for (int j = 0; j < height; j++) {
+      float fitness = fitness(new PVector(i, j));
+      map[i * height + j] = fitness;
+      if (fitness > high) realBest = new PVector(i, j);
+      high = max(fitness, high);
+      low = min(fitness, low);
+    }
+  }
 }
 
 void draw() {
   background(#bfbfbf);
+  
+  //colorMode(HSB);
+  //for (int i = 0; i < width; i++) {
+  //  for (int j = 0; j < height; j++) {
+      
+  //    stroke(map(map[i * height + j], low, high, 20, 235), 200, 200);
+  //    point(i, j);
+      
+  //  }
+  //}
+  
+  
   fill(#ff0000);
   for (int i = 0; i < g; i++) {
     PVector goal = goals.get(i);
@@ -75,12 +106,15 @@ void draw() {
     updateVel(velocities.get(i), p.copy(), bests.get(i).copy(), best.copy());
     it++;
   }
+  
+  fill(#0fff0f);
+  ellipse(realBest.x, realBest.y, 12, 12);
 }
 
 float fitness(PVector p) {
   float result = 100000f;
   for (PVector goal : goals) {
-    result -= goal.dist(p);
+    result -= goal.dist(p) / 100f;
   }
   return result;
 }
@@ -88,5 +122,5 @@ float fitness(PVector p) {
 void updateVel(PVector vel, PVector point, PVector pBest, PVector cBest) {
   PVector p = pBest.sub(point).mult(c1 * rand.nextFloat())
    .add(cBest.sub(point).mult(c2 * (it / 100) * rand.nextFloat()));
-  vel.add(p).limit(2 - ((float) it / 10000));
+  vel.add(p).limit(2);
 }
