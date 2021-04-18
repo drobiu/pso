@@ -2,8 +2,9 @@ import java.util.Random;
 
 int n = 30; // number of agents
 int g = 5; // number of goals
-float c1 = 0.0001f;
-float c2 = 0.0001f;
+float alpha = 1f;
+float c1 = 0.03f;
+float c2 = 0.001f;
 int it = 1;
 
 ArrayList<PVector> points = new ArrayList<PVector>();
@@ -34,9 +35,11 @@ void setup() {
   size(640, 480);
   
   for (int i = 0; i < n; i++) {
-    points.add(new PVector(rand.nextFloat() * width, rand.nextFloat() * height));
+    float x = rand.nextFloat() * width;
+    float y = rand.nextFloat() * height;
+    points.add(new PVector(x, y));
     velocities.add(new PVector(rand.nextFloat() - 0.5f, rand.nextFloat() - 0.5f));
-    bests.add(new PVector());
+    bests.add(new PVector(x, y));
   }
   
   for (int i = 0; i < g + 2; i++) {
@@ -63,17 +66,17 @@ void setup() {
 void draw() {
   background(#bfbfbf);
   
-  if (it % 200 == 0) {
-    colorMode(HSB);
-    for (int i = 0; i < width; i++) {
-      for (int j = 0; j < height; j++) {
-        
-        stroke(map(map[i * height + j], low, high, 20, 235), 200, 200);
-        point(i, j);
-        
-      }
-    }
-  }
+
+  //colorMode(HSB);
+  //for (int i = 0; i < width; i++) {
+  //  for (int j = 0; j < height; j++) {
+      
+  //    stroke(map(map[i * height + j], low, high, 20, 235), 200, 200);
+  //    point(i, j);
+      
+  //  }
+  //}
+  
   
   
   fill(#ff0000);
@@ -110,7 +113,7 @@ void draw() {
     ellipse(p.x, p.y, 12, 12);
     PVector end = p.copy().add(velocities.get(i).copy().mult(20));
     line(p.x, p.y, end.x, end.y);
-    p.add(velocities.get(i));
+    p.add(velocities.get(i).copy().mult(alpha));
     
     updateVel(velocities.get(i), p.copy(), bests.get(i).copy(), best.copy());
     it++;
@@ -118,12 +121,22 @@ void draw() {
   
   fill(#0f0fff);
   ellipse(best.x, best.y, 12, 12);
+  
+  for (PVector lb : bests) {
+    ellipse(lb.x, lb.y, 5, 5);
+  }
+  
   fill(#0fff0f);
   ellipse(realBest.x, realBest.y, 12, 12);
 }
 
 float fitness(PVector p) {
   float result = 10f;
+  //if (width / 2 - abs(width / 2 - p.x) < 50) return - (width / 2 - abs(width / 2 - p.x));
+  //if (height / 2 - abs(height / 2 - p.y) < 50) return - (height / 2 - abs(height / 2 - p.y));
+  
+  if (p.x < 0 || p.x > width) return - 1000;
+  if (p.y < 0 || p.y > height) return - 1000;
   for (int i = 0; i < g * (g + 2); i++) {
     result += sqrt(goals.get(i).dist(p)) * goalWeights[i] / 100f;
   }
@@ -132,7 +145,8 @@ float fitness(PVector p) {
 }
 
 void updateVel(PVector vel, PVector point, PVector pBest, PVector cBest) {
+  PVector in = vel.copy().limit(0.1f);
   PVector p = pBest.sub(point).mult(c1 * rand.nextFloat())
    .add(cBest.sub(point).mult(c2 * (it / 100) * rand.nextFloat()));
-  vel.add(p).limit(2);
+  vel.add(p).add(in).limit(2);
 }
