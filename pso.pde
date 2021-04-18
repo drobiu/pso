@@ -1,18 +1,21 @@
 import java.util.Random;
 
-int n = 5; // number of agents
-int g = 3; // number of goals
-float c1 = 0.001f;
-float c2 = 0.01f;
+int n = 30; // number of agents
+int g = 5; // number of goals
+float c1 = 0.0001f;
+float c2 = 0.0001f;
 int it = 1;
 
 ArrayList<PVector> points = new ArrayList<PVector>();
 ArrayList<PVector> velocities = new ArrayList<PVector>();
+
 ArrayList<PVector> goals = new ArrayList<PVector>();
+float[] goalWeights = new float[g * (g + 2)];
+
 ArrayList<PVector> bests = new ArrayList<PVector>();
 float[] fits = new float[n];
 PVector best = new PVector();
-float bestFit = 0f;
+float bestFit = Float.MIN_VALUE;
 
 ArrayList<PVector> history = new ArrayList<PVector>();
 
@@ -36,8 +39,12 @@ void setup() {
     bests.add(new PVector());
   }
   
-  for (int i = 0; i < g; i++) {
-    goals.add(new PVector(rand.nextFloat() * width, rand.nextFloat() * height));
+  for (int i = 0; i < g + 2; i++) {
+    for (int j = 0; j < g; j++) {
+      goals.add(new PVector(map(i, 0, g + 2, 100, width + width / (g + 2) - 100), 
+        map(j, 0, g, 100, height + height / g - 100)));
+      goalWeights[i * g + j] = (float)rand.nextGaussian();
+    }  
   }
   
   map = new float[width * height];
@@ -56,19 +63,21 @@ void setup() {
 void draw() {
   background(#bfbfbf);
   
-  //colorMode(HSB);
-  //for (int i = 0; i < width; i++) {
-  //  for (int j = 0; j < height; j++) {
-      
-  //    stroke(map(map[i * height + j], low, high, 20, 235), 200, 200);
-  //    point(i, j);
-      
-  //  }
-  //}
+  if (it % 200 == 0) {
+    colorMode(HSB);
+    for (int i = 0; i < width; i++) {
+      for (int j = 0; j < height; j++) {
+        
+        stroke(map(map[i * height + j], low, high, 20, 235), 200, 200);
+        point(i, j);
+        
+      }
+    }
+  }
   
   
   fill(#ff0000);
-  for (int i = 0; i < g; i++) {
+  for (int i = 0; i < g * (g + 2); i++) {
     PVector goal = goals.get(i);
     ellipse(goal.x, goal.y, 10, 10);
   }
@@ -107,15 +116,18 @@ void draw() {
     it++;
   }
   
+  fill(#0f0fff);
+  ellipse(best.x, best.y, 12, 12);
   fill(#0fff0f);
   ellipse(realBest.x, realBest.y, 12, 12);
 }
 
 float fitness(PVector p) {
-  float result = 100000f;
-  for (PVector goal : goals) {
-    result -= goal.dist(p) / 100f;
+  float result = 10f;
+  for (int i = 0; i < g * (g + 2); i++) {
+    result += sqrt(goals.get(i).dist(p)) * goalWeights[i] / 100f;
   }
+  //println(result);
   return result;
 }
 
